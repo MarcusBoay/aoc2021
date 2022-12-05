@@ -29,24 +29,44 @@ impl Simulator {
             //     println!("{:?}",line);
             // }
             // println!();
-
-            // Add 1 to all.
-            for i in 0..self.cave.len() {
-                for j in 0..self.cave[i].len() {
-                    self.cave[i][j] += 1;
-                }
-            }
+            
+            self.add_one_to_all();
         
-            // for each num, backtrack(flash)
-            let mut flashes = 0;
+            total_flashes += self.simulate_flash_for_all();
+        }
+        println!("Total flashes after {steps} steps: {total_flashes}");
+    }
+
+    pub fn part2(&mut self) {
+        self.cave = self.original_cave.clone();
+        let mut i = 0;
+        loop {
+            i += 1;
+            self.add_one_to_all();
+            let flashes = self.simulate_flash_for_all();
+            if flashes as usize == self.cave.len() * self.cave[0].len() {
+                break;
+            }
+        }
+        println!("First step where all octopuses flash: {i}");
+    }
+
+    fn add_one_to_all(&mut self) {
+        for i in 0..self.cave.len() {
+            for j in 0..self.cave[i].len() {
+                self.cave[i][j] += 1;
+            }
+        }
+    }
+
+    fn simulate_flash_for_all(&mut self) -> i32 {
+        let mut flashes = 0;
             for i in 0..self.cave.len() {
                 for j in 0..self.cave[i].len() {
                     flashes += self.simulate_flash(i, j);
                 }
             }
-            total_flashes += flashes;
-        }
-        println!("Total flashes after {steps} steps: {total_flashes}");
+        flashes
     }
 
     fn simulate_flash(&mut self, i: usize, j: usize) -> i32 {
@@ -105,4 +125,5 @@ fn main() {
     simulator.part1(2);
     simulator.part1(10);
     simulator.part1(100);
+    simulator.part2();
 }

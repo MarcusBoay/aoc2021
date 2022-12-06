@@ -1,7 +1,6 @@
 use std::{
     cell::UnsafeCell,
     collections::{HashMap, HashSet},
-    process::exit,
     rc::Rc,
 };
 
@@ -29,6 +28,7 @@ struct Program {
     unique_paths: i32,
     nodes: HashMap<String, Rc<UnsafeCell<Node>>>,
     cur_path: Vec<String>,
+    seen_smalls: HashMap<String, usize>,
 }
 
 impl Program {
@@ -74,10 +74,17 @@ impl Program {
             }
         }
 
+        // Get seen smalls.
+        let mut seen_smalls: HashMap<String, usize> = HashMap::new();
+        for (n, _) in &nodes {
+            seen_smalls.insert(n.clone(), 0);
+        }
+
         Self {
             unique_paths: 0,
             nodes,
             cur_path: vec![],
+            seen_smalls,
         }
     }
 
@@ -99,7 +106,14 @@ impl Program {
     /// Welcome to inferior C++...
     unsafe fn find_paths(&mut self, node: &mut Rc<UnsafeCell<Node>>) {
         let n = node.get();
-        if (*n).val.as_str() == "start" || ((*n).visited && (*n).is_small) {
+        let mut has_second = false;
+        for v in self.seen_smalls.values() {
+            if v > &1 {
+                has_second = true;
+                break;
+            }
+        }
+        if (*n).val.as_str() == "start" || (has_second && (*n).visited && (*n).is_small) {
             return;
         }
         if (*n).val.as_str() == "end" {
@@ -109,17 +123,28 @@ impl Program {
         }
 
         (*n).visited = true;
+        if (*n).is_small {
+            self.seen_smalls
+                .insert((*n).val.clone(), self.seen_smalls[&(*n).val] + 1);
+        }
 
         for neighbour in &mut (*n).neighbours {
             let nn = neighbour.get();
-            if !(*nn).is_small || !(*nn).visited {
-                self.cur_path.push((*nn).val.clone());
-                self.find_paths(&mut Rc::clone(neighbour));
-                self.cur_path.pop();
-            }
+            // if !(*nn).is_small || !(*nn).visited {
+            self.cur_path.push((*nn).val.clone());
+            self.find_paths(&mut Rc::clone(neighbour));
+            self.cur_path.pop();
+            // }
         }
 
-        (*n).visited = false;
+        if (*n).is_small {
+            self.seen_smalls
+                .insert((*n).val.clone(), self.seen_smalls[&(*n).val] - 1);
+
+            if self.seen_smalls[&(*n).val] == 0 {
+                (*n).visited = false;
+            }
+        }
     }
 }
 
